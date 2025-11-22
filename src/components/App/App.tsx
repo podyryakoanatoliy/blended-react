@@ -2,17 +2,31 @@
 import { useState } from "react";
 import PostList from "../PostList/PostList";
 import SearchBox from "../SearchBox/SearchBox";
-// import Pagination from "../Pagination/Pagination";
+import Pagination from "../Pagination/Pagination";
+
+import CreatePostForm from "../CreatePostForm/CreatePostForm";
 
 import css from "./App.module.css";
 import { useDebounce } from "use-debounce";
-import { keepPreviousData, useQueries, useQuery } from "@tanstack/react-query";
+import { keepPreviousData, useQuery } from "@tanstack/react-query";
 import { fetchPosts } from "../../services/postService";
+import Modal from "../Modal/Modal";
+import { Post } from "../../types/post";
+import EditPostForm from "../EditPostForm/EditPostForm";
 
 export default function App() {
   const [page, setPage] = useState<number>(1);
   const [query, setQuery] = useState<string>("");
   const [debouncedQuery] = useDebounce(query, 300);
+  const [isModal, setIsModal] = useState<boolean>(false);
+  const [isCreatePost, setIsCreatePost] = useState<boolean>(false);
+  const [isEditPost, setIsEditPost] = useState<boolean>(false);
+  const [editedPost, setEditedPost] = useState<Post | null>(null);
+
+  const toggleCreatePost = () => setIsCreatePost(!isCreatePost);
+
+  const toggleModal = () => setIsModal(!isModal);
+
   const changeSearchQuery = (newQuery: string) => {
     setPage(1);
     setQuery(newQuery);
@@ -23,16 +37,63 @@ export default function App() {
     queryFn: () => fetchPosts(debouncedQuery, page),
     placeholderData: keepPreviousData,
   });
-  console.log(data);
+  const posts = data?.posts ?? [];
+
+  const totalPages = data?.totalCount ? Math.ceil(data?.totalCount / 8) : 0;
+
+  const toggleEditedPost = (postToEdit?: Post) => {
+    if (postToEdit) {
+      setEditedPost(postToEdit);
+    }
+    setIsEditPost(!isEditPost);
+    console.log(postToEdit);
+  };
+
   return (
     <div className={css.app}>
       <header className={css.toolbar}>
         <SearchBox onSearch={changeSearchQuery} value={query} />
-        {/* <Pagination /> */}
-        <button className={css.button}>Create post</button>
+        <Pagination totalPages={totalPages} currentPage={page} onPageChange={setPage} />
+        <button
+          className={css.button}
+          onClick={() => {
+            toggleModal();
+            toggleCreatePost();
+          }}
+        >
+          Create post
+        </button>
       </header>
-      {/* <Modal>Передати через children компонент CreatePostForm або EditPostForm</Modal> */}
-      <PostList />
+      {posts.length > 0 && (
+        <PostList onChekedPost={toggleEditedPost} posts={posts} modalOpen={toggleModal} />
+      )}
+      {isModal && (
+        <Modal
+          onClose={() => {
+            toggleModal();
+            toggleCreatePost();
+          }}
+        >
+          {isEditPost && editedPost && (
+            <EditPostForm
+              initialValues={editedPost}
+              onClose={() => {
+                toggleModal();
+                toggleEditedPost();
+                setEditedPost(null);
+              }}
+            />
+          )}{" "}
+          {isCreatePost && (
+            <CreatePostForm
+              onClose={() => {
+                toggleModal();
+                toggleCreatePost();
+              }}
+            />
+          )}{" "}
+        </Modal>
+      )}
     </div>
   );
 }

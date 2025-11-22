@@ -6,7 +6,7 @@ import SearchBox from "../SearchBox/SearchBox";
 
 import css from "./App.module.css";
 import { useDebounce } from "use-debounce";
-import { keepPreviousData, useQueries, useQuery } from "@tanstack/react-query";
+import { keepPreviousData, useQuery } from "@tanstack/react-query";
 import { fetchPosts } from "../../services/postService";
 
 export default function App() {
@@ -23,7 +23,8 @@ export default function App() {
     queryFn: () => fetchPosts(debouncedQuery, page),
     placeholderData: keepPreviousData,
   });
-  console.log(data);
+
+  const posts = data?.posts ?? [];
   return (
     <div className={css.app}>
       <header className={css.toolbar}>
@@ -32,7 +33,7 @@ export default function App() {
         <button className={css.button}>Create post</button>
       </header>
       {/* <Modal>Передати через children компонент CreatePostForm або EditPostForm</Modal> */}
-      <PostList />
+      {posts.length > 0 && <PostList posts={posts} />}
     </div>
   );
 }
